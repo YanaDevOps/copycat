@@ -70,7 +70,7 @@ docker run -d \
   -e COPYCAT_SECRET_KEY='replace-this-with-a-long-random-secret' \
   -v "$(pwd)/data:/data" \
   -p 8080:8080 \
-  copycat:latest
+  ghcr.io/yanadevops/copycat:latest
 ```
 
 Open `http://localhost:8080`.
@@ -82,7 +82,7 @@ services:
   copycat:
     container_name: copycat
     build: .
-    image: copycat:latest
+    image: ghcr.io/yanadevops/copycat:latest
     environment:
       PUID: 1000
       PGID: 1000
