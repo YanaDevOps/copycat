@@ -65,18 +65,39 @@ def get_env(
 
 def replace_base_href(html_file, path_prefix):
     """Replace the href value for the base element in an HTML file."""
-    base_path = path_prefix + "/"
-    logger.info(
-        f"Replacing href value for base element in '{html_file}' "
-        + f"with '{base_path}'."
-    )
+    base_path = _base_href_from_path_prefix(path_prefix)
     with open(html_file, "r", encoding="utf-8") as f:
         html = f.read()
-    pattern = r'(<base\s+href=")[^"]*(")'
-    replacement = r"\1" + base_path + r"\2"
-    updated_html = re.sub(pattern, replacement, html, flags=re.IGNORECASE)
+
+    pattern = r'(<base\s+href=")([^"]*)(")'
+    match = re.search(pattern, html, flags=re.IGNORECASE)
+    if match is None:
+        logger.warning("No base href element found in '%s'.", html_file)
+        return
+    if match.group(2) == base_path:
+        logger.info(
+            "Base href in '%s' already set to '%s'.",
+            html_file,
+            base_path,
+        )
+        return
+
+    logger.info(
+        "Replacing href value for base element in '%s' with '%s'.",
+        html_file,
+        base_path,
+    )
+    replacement = r"\1" + base_path + r"\3"
+    updated_html = re.sub(pattern, replacement, html, count=1, flags=re.IGNORECASE)
     with open(html_file, "w", encoding="utf-8") as f:
         f.write(updated_html)
+
+
+def _base_href_from_path_prefix(path_prefix):
+    path_prefix = (path_prefix or "").strip()
+    if not path_prefix or path_prefix == "/":
+        return "/"
+    return path_prefix.rstrip("/") + "/"
 
 
 def resolve_root_app_dir(base_path: str) -> str:

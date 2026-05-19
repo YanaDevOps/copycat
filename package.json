@@ -1,6 +1,6 @@
 {
   "name": "copycat",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "type": "module",
   "description": "Self-hosted markdown notes with search, tags, attachments, and zero database.",
   "main": "client/index.html",
