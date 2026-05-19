@@ -55,6 +55,7 @@ import { apiErrorHandler, getTags } from "../api.js";
 import IconLabel from "../components/IconLabel.vue";
 import * as constants from "../constants.js";
 import { useGlobalStore } from "../globalStore.js";
+import { withGroupQuery } from "../routeHelpers.js";
 
 const props = defineProps({
   initialSearchTerm: { type: String, default: "" },
@@ -126,12 +127,13 @@ function search() {
 
   router.push({
     name: "home",
-    query: {
-      ...(normalizedSearchTerm
+    query: withGroupQuery(
+      normalizedSearchTerm
         ? { [constants.params.searchTerm]: normalizedSearchTerm }
-        : {}),
-      ...(activeGroup() ? { [constants.params.group]: activeGroup() } : {}),
-    },
+        : {},
+      activeGroup(),
+      { allowAll: true },
+    ),
   });
   emit("search");
 }

@@ -198,7 +198,7 @@
     }
 
     .app-title {
-        @apply max-w-4xl text-4xl font-semibold tracking-[-0.04em] text-theme-text sm:text-5xl lg:text-6xl;
+        @apply max-w-4xl text-4xl font-semibold text-theme-text sm:text-5xl lg:text-6xl;
         line-height: 0.98;
     }
 
@@ -235,7 +235,7 @@
     }
 
     .hero-stat-value {
-        @apply mt-2 block text-2xl font-semibold tracking-[-0.03em] text-theme-text;
+        @apply mt-2 block text-2xl font-semibold text-theme-text;
     }
 
     .control-rail {
@@ -272,7 +272,7 @@
     }
 
     .section-title {
-        @apply mt-1 text-2xl font-semibold tracking-[-0.03em] text-theme-text;
+        @apply mt-1 text-2xl font-semibold text-theme-text;
     }
 
     .section-meta {
@@ -311,7 +311,7 @@
     }
 
     .timeline-label {
-        @apply text-lg font-semibold tracking-[-0.03em] text-theme-text;
+        @apply text-lg font-semibold text-theme-text;
     }
 
     .timeline-count {

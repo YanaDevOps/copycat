@@ -7,7 +7,7 @@
     <div class="flex items-start justify-between gap-4">
       <div class="min-w-0 flex-1" :class="compact ? 'space-y-1.5' : 'space-y-2'">
         <div
-          class="note-card-title line-clamp-2 break-words text-base font-semibold tracking-[-0.02em] text-theme-text sm:text-lg"
+          class="note-card-title line-clamp-2 break-words text-base font-semibold text-theme-text sm:text-lg"
           :class="{ 'note-card-title-fade': titleFade }"
           v-html="sanitizedTitleMarkup"
         ></div>

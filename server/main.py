@@ -23,6 +23,7 @@ from attachments.file_system.file_system import (
 from attachments.models import AttachmentCreateResponse
 from auth.base import BaseAuth
 from auth.models import AuthPrincipal, Login, Token
+from data_guard import guard_data_root
 from global_config import AuthType, GlobalConfig, GlobalConfigResponseModel
 from helpers import replace_base_href
 from logger import logger
@@ -37,6 +38,7 @@ from security import (
 )
 
 global_config = GlobalConfig()
+data_root_summary = guard_data_root()
 auth: BaseAuth = global_config.load_auth()
 access_service = AccessService()
 router = APIRouter()
@@ -52,10 +54,28 @@ login_rate_limiter = LoginRateLimiter(
     user_ip_max_attempts=global_config.login_rate_limit_user_ip_max,
 )
 
+logger.info(
+    "CopyCat startup configuration: auth_type='%s', path_prefix='%s', "
+    "csp_mode='%s', login_rate_limit_enabled=%s, data_root='%s'.",
+    global_config.auth_type.value,
+    global_config.path_prefix or "/",
+    global_config.csp_mode,
+    global_config.login_rate_limit_enabled,
+    data_root_summary.data_root,
+)
+
 
 @app.middleware("http")
 async def security_headers_middleware(request: Request, call_next):
-    response = await call_next(request)
+    try:
+        response = await call_next(request)
+    except Exception:
+        logger.exception(
+            "Unhandled request error: method=%s path=%s",
+            request.method,
+            request.url.path,
+        )
+        raise
     apply_security_headers(
         response,
         csp_mode=global_config.csp_mode,

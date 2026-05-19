@@ -1,5 +1,6 @@
 ﻿import glob
 import os
+import threading
 from typing import Literal
 
 from fastapi import HTTPException, UploadFile
@@ -47,6 +48,7 @@ class AccessService:
         self._metadata_cache: dict[str, FileSystemMetadata] = {}
         self._notes_cache: dict[str, FileSystemNotes] = {}
         self._attachments_cache: dict[str, FileSystemAttachments] = {}
+        self._cache_lock = threading.RLock()
 
     def list_available_groups(
         self, principal: AuthPrincipal
@@ -230,6 +232,12 @@ class AccessService:
         self._require_write_mode()
         scope = self.resolve_scope(principal, group, for_write=True)
         note = self._notes(scope).create(data)
+        logger.info(
+            "User '%s' created note '%s' in scope '%s'.",
+            principal.username,
+            note.title,
+            scope.query_value,
+        )
         return self._annotate_note(note, scope)
 
     def update_note(
@@ -242,6 +250,12 @@ class AccessService:
         self._require_write_mode()
         scope = self.resolve_scope(principal, group, for_write=True)
         note = self._notes(scope).update(title, data)
+        logger.info(
+            "User '%s' updated note '%s' in scope '%s'.",
+            principal.username,
+            note.title,
+            scope.query_value,
+        )
         return self._annotate_note(note, scope)
 
     def duplicate_note(
@@ -250,6 +264,13 @@ class AccessService:
         self._require_write_mode()
         scope = self.resolve_scope(principal, group, for_write=True)
         note = self._notes(scope).duplicate(title)
+        logger.info(
+            "User '%s' duplicated note '%s' to '%s' in scope '%s'.",
+            principal.username,
+            title,
+            note.title,
+            scope.query_value,
+        )
         return self._annotate_note(note, scope)
 
     def delete_note(
@@ -258,11 +279,23 @@ class AccessService:
         self._require_write_mode()
         scope = self.resolve_scope(principal, group, for_write=True)
         self._notes(scope).delete(title)
+        logger.info(
+            "User '%s' deleted note '%s' in scope '%s'.",
+            principal.username,
+            title,
+            scope.query_value,
+        )
 
     def export_note(
         self, principal: AuthPrincipal, title: str, group: str | None
     ):
         scope = self.resolve_scope(principal, group)
+        logger.info(
+            "User '%s' exported note '%s' from scope '%s'.",
+            principal.username,
+            title,
+            scope.query_value,
+        )
         return self._notes(scope).export(title)
 
     def export_all_notes(
@@ -330,6 +363,12 @@ class AccessService:
         limit: int | None = None,
     ) -> list[SearchResult]:
         normalized_group = (group or "").strip().lower()
+        logger.debug(
+            "Resolving library scope: user='%s', group='%s', for_write=%s.",
+            principal.username,
+            normalized_group or "<default>",
+            for_write,
+        )
         if normalized_group == "all":
             scopes = self._all_scopes(principal)
             results = []
@@ -569,37 +608,41 @@ class AccessService:
 
     def _metadata(self, scope: LibraryScope) -> FileSystemMetadata:
         cache_key = scope.metadata_path
-        if cache_key not in self._metadata_cache:
-            self._metadata_cache[cache_key] = FileSystemMetadata(
-                storage_path=scope.metadata_path
-            )
-        return self._metadata_cache[cache_key]
+        with self._cache_lock:
+            if cache_key not in self._metadata_cache:
+                self._metadata_cache[cache_key] = FileSystemMetadata(
+                    storage_path=scope.metadata_path
+                )
+            return self._metadata_cache[cache_key]
 
     def _notes(self, scope: LibraryScope) -> FileSystemNotes:
         cache_key = scope.notes_path
-        if cache_key not in self._notes_cache:
-            metadata = self._metadata(scope)
-            self._notes_cache[cache_key] = FileSystemNotes(
-                storage_path=scope.notes_path,
-                metadata_storage=metadata,
-                index_path=scope.index_path,
-            )
-        return self._notes_cache[cache_key]
+        with self._cache_lock:
+            if cache_key not in self._notes_cache:
+                metadata = self._metadata(scope)
+                self._notes_cache[cache_key] = FileSystemNotes(
+                    storage_path=scope.notes_path,
+                    metadata_storage=metadata,
+                    index_path=scope.index_path,
+                    data_root=self.base_path,
+                )
+            return self._notes_cache[cache_key]
 
     def _attachments(self, scope: LibraryScope) -> FileSystemAttachments:
         cache_key = scope.attachments_path
-        if cache_key not in self._attachments_cache:
-            query_params = (
-                {"group": scope.query_value}
-                if scope.kind == "group"
-                else {"group": "legacy"}
-            )
-            self._attachments_cache[cache_key] = FileSystemAttachments(
-                storage_path=scope.attachments_path,
-                url_prefix="attachments",
-                query_params=query_params,
-            )
-        return self._attachments_cache[cache_key]
+        with self._cache_lock:
+            if cache_key not in self._attachments_cache:
+                query_params = (
+                    {"group": scope.query_value}
+                    if scope.kind == "group"
+                    else {"group": "legacy"}
+                )
+                self._attachments_cache[cache_key] = FileSystemAttachments(
+                    storage_path=scope.attachments_path,
+                    url_prefix="attachments",
+                    query_params=query_params,
+                )
+            return self._attachments_cache[cache_key]
 
     def _annotate_note(self, note: Note, scope: LibraryScope) -> Note:
         return note.model_copy(
@@ -717,5 +760,3 @@ class AccessService:
     def _require_write_mode(self) -> None:
         if self.auth_type == AuthType.READ_ONLY:
             raise HTTPException(status_code=403, detail="Read-only mode.")
-
-

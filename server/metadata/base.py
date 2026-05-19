@@ -35,6 +35,11 @@ class BaseMetadata(ABC):
         pass
 
     @abstractmethod
+    def note_count(self) -> int:
+        """Return the number of notes tracked by metadata."""
+        pass
+
+    @abstractmethod
     def get_note_tags(self, title: str) -> list[TagRef]:
         """Return resolved tag references for a note."""
         pass

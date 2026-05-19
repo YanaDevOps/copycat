@@ -1,5 +1,6 @@
 import { params, searchSortOptions } from "../../constants.js";
 
+import { cleanWikiLinkTitle, withGroupQuery } from "../../routeHelpers.js";
 import router from "../../router.js";
 
 /*
@@ -79,14 +80,14 @@ function parseWikiLink(source) {
   const matched = source.matchAll(/\[\[\s*(\S(?:[^\[\]]*?\S)?)\s*\]\]/g);
   if (matched) {
     return Array.from(matched).map((match) => {
-      const text = match[1];
+      const text = cleanWikiLinkTitle(match[1]);
       const currentGroup = router.currentRoute.value.query[params.group];
       let href = "#";
       try {
         href = router.resolve({
           name: "note",
-          params: { title: text.trim() },
-          query: currentGroup ? { [params.group]: currentGroup } : {},
+          params: { title: text },
+          query: withGroupQuery({}, currentGroup),
         }).href;
       } catch {
         href = "#";
@@ -112,11 +113,14 @@ function parseTagLink(source) {
       try {
         href = router.resolve({
           name: "home",
-          query: {
-            [params.searchTerm]: text,
-            [params.sort]: searchSortOptions.title,
-            ...(currentGroup ? { [params.group]: currentGroup } : {}),
-          },
+          query: withGroupQuery(
+            {
+              [params.searchTerm]: text,
+              [params.sort]: searchSortOptions.title,
+            },
+            currentGroup,
+            { allowAll: true },
+          ),
         }).href;
       } catch {
         href = "#";

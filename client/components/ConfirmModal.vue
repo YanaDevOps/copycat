@@ -5,7 +5,7 @@
     class="px-6 py-6 sm:px-8"
   >
     <!-- Title -->
-    <div v-if="title" class="mb-3 text-2xl font-semibold tracking-[-0.03em] text-theme-text">
+    <div v-if="title" class="mb-3 text-2xl font-semibold text-theme-text">
       {{ title }}
     </div>
     <!-- Message -->

@@ -3,7 +3,13 @@
 import colors from "tailwindcss/colors";
 
 export default {
-  content: ["client/**/*.{html,js,vue}"],
+  content: [
+    "client/*.html",
+    "client/*.{js,vue}",
+    "client/components/**/*.{js,vue}",
+    "client/partials/**/*.{js,vue}",
+    "client/views/**/*.{js,vue}",
+  ],
   darkMode: "selector",
   theme: {
     fontFamily: {

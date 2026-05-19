@@ -7,7 +7,7 @@
     />
     <div class="min-w-0" :class="{ 'hidden sm:block': props.responsive }">
       <span
-        class="block text-lg font-semibold tracking-[-0.04em] text-theme-text sm:text-xl"
+        class="block text-lg font-semibold text-theme-text sm:text-xl"
       >
         CopyCat
       </span>

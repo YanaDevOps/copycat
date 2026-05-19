@@ -26,6 +26,7 @@ const emit = defineEmits(["change", "keydown"]);
 const editorElement = ref();
 let toastEditor;
 let removePasteListener = null;
+let pasteRestoreDeadline = 0;
 
 onMounted(() => {
   const editorHeight =
@@ -87,12 +88,7 @@ function bindPasteScrollGuard() {
 
     // TOAST UI mutates the editor DOM asynchronously during paste, so restore
     // the scroll position after the browser and editor finish their updates.
-    requestAnimationFrame(() => {
-      restoreScrollStates(scrollStates);
-      requestAnimationFrame(() => {
-        restoreScrollStates(scrollStates);
-      });
-    });
+    schedulePasteScrollRestores(scrollStates);
   };
 
   editorElement.value.addEventListener("paste", handlePaste, true);
@@ -104,23 +100,18 @@ function bindPasteScrollGuard() {
 function captureScrollStates(startElement) {
   const scrollStates = [];
   const seen = new Set();
-  let current = startElement;
 
+  addElementScrollState(scrollStates, seen, document.scrollingElement);
+  addEditorScrollStates(scrollStates, seen);
+
+  let current = startElement;
   while (current instanceof HTMLElement) {
     if (seen.has(current)) {
       current = current.parentElement;
       continue;
     }
 
-    seen.add(current);
-    if (isScrollable(current)) {
-      scrollStates.push({
-        type: "element",
-        element: current,
-        top: current.scrollTop,
-        left: current.scrollLeft,
-      });
-    }
+    addElementScrollState(scrollStates, seen, current);
     current = current.parentElement;
   }
 
@@ -133,7 +124,61 @@ function captureScrollStates(startElement) {
   return scrollStates;
 }
 
+function addEditorScrollStates(scrollStates, seen) {
+  const selectors = [
+    ".toastui-editor-defaultUI",
+    ".toastui-editor-main",
+    ".toastui-editor-main-container",
+    ".toastui-editor-md-container",
+    ".toastui-editor-ww-container",
+    ".toastui-editor-md-editor",
+    ".toastui-editor-md-preview",
+    ".toastui-editor-contents",
+    ".ProseMirror",
+  ];
+
+  selectors.forEach((selector) => {
+    editorElement.value
+      ?.querySelectorAll(selector)
+      .forEach((element) => addElementScrollState(scrollStates, seen, element));
+  });
+}
+
+function addElementScrollState(scrollStates, seen, element) {
+  if (!(element instanceof HTMLElement) || seen.has(element)) {
+    return;
+  }
+
+  seen.add(element);
+  if (!isScrollable(element)) {
+    return;
+  }
+
+  scrollStates.push({
+    type: "element",
+    element,
+    top: element.scrollTop,
+    left: element.scrollLeft,
+  });
+}
+
+function schedulePasteScrollRestores(scrollStates) {
+  pasteRestoreDeadline = Date.now() + 300;
+  restoreScrollStates(scrollStates);
+  Promise.resolve().then(() => restoreScrollStates(scrollStates));
+  requestAnimationFrame(() => {
+    restoreScrollStates(scrollStates);
+    requestAnimationFrame(() => restoreScrollStates(scrollStates));
+  });
+  setTimeout(() => restoreScrollStates(scrollStates), 50);
+  setTimeout(() => restoreScrollStates(scrollStates), 150);
+}
+
 function restoreScrollStates(scrollStates) {
+  if (Date.now() > pasteRestoreDeadline) {
+    return;
+  }
+
   for (const state of scrollStates) {
     if (state.type === "window") {
       window.scrollTo(state.left, state.top);

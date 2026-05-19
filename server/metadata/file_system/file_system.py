@@ -97,6 +97,9 @@ class FileSystemMetadata(BaseMetadata):
             if state.notes.pop(title, None) is not None:
                 self._write_state(state)
 
+    def note_count(self) -> int:
+        return len(self._load_state().notes)
+
     def get_note_tags(self, title: str) -> list[TagRef]:
         state = self._load_state()
         note_metadata = state.notes.get(title, NoteMetadata())
@@ -266,4 +269,3 @@ class FileSystemMetadata(BaseMetadata):
         while f"{candidate}-{suffix}" in state.tags:
             suffix += 1
         return f"{candidate}-{suffix}"
-

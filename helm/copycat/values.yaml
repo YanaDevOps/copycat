@@ -42,6 +42,18 @@ auth:
 
 config: {}
 
+dataGuard:
+  mode: fail_existing
+
+logging:
+  level: INFO
+  toFile: true
+  file: /data/.copycat/logs/copycat.log
+  retentionDays: "7"
+  maxBytes: "10485760"
+  backupCount: "7"
+  accessLog: true
+
 extraEnv: []
 extraEnvFrom: []
 extraVolumes: []

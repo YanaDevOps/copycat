@@ -149,7 +149,7 @@
 
             <div class="max-w-4xl">
               <div
-                class="break-words text-[2rem] font-semibold tracking-[-0.05em] text-theme-text sm:text-[2.75rem]"
+                class="break-words text-[2rem] font-semibold text-theme-text sm:text-[2.75rem]"
               >
                 <span v-show="!editMode" :title="note.title">{{ note.title }}</span>
                 <input
@@ -402,6 +402,11 @@ import {
   noteImportAccept,
   noteImportMaxBytes,
 } from "../noteImport.js";
+import {
+  cleanNoteTitleForRoute,
+  groupQueryValue,
+  withGroupQuery,
+} from "../routeHelpers.js";
 import { isCurrentTokenStored } from "../tokenStorage.js";
 
 const props = defineProps({
@@ -744,7 +749,7 @@ function duplicateHandler() {
       );
       router.push({
         name: "note",
-        params: { title: data.title },
+        params: { title: cleanNoteTitleForRoute(data.title) },
         query: noteQuery(data.title, data.groupId || currentGroupQuery.value)
           .query,
       });
@@ -756,7 +761,7 @@ function duplicateHandler() {
 
 function downloadHandler() {
   window.location.assign(
-    getNoteExportUrl(note.value.title, currentGroupQuery.value),
+    getNoteExportUrl(note.value.title, groupQueryValue(currentGroupQuery.value)),
   );
 }
 
@@ -764,7 +769,7 @@ function shareHandler() {
   const noteUrl = buildAppUrl(
     router.resolve({
       name: "note",
-      params: { title: note.value.title },
+      params: { title: cleanNoteTitleForRoute(note.value.title) },
       query: noteQuery(note.value.title).query,
     }).href,
   );
@@ -854,7 +859,7 @@ async function saveNew(title, content, tagIds, close = false) {
     note.value = data;
     await router.push({
       name: "note",
-      params: { title: note.value.title },
+      params: { title: cleanNoteTitleForRoute(note.value.title) },
       query: noteQuery(note.value.title, data.groupId || currentGroupQuery.value)
         .query,
     });
@@ -1257,23 +1262,15 @@ function isContentChanged() {
 }
 
 function noteQuery(title, group = currentGroupQuery.value) {
-  const query = {};
-  if (group) {
-    query.group = group;
-  }
   return {
     name: "note",
-    params: { title },
-    query,
+    params: { title: cleanNoteTitleForRoute(title) },
+    query: withGroupQuery({}, group),
   };
 }
 
 function homeQuery() {
-  const query = {};
-  if (currentGroupQuery.value) {
-    query.group = currentGroupQuery.value;
-  }
-  return query;
+  return withGroupQuery({}, currentGroupQuery.value);
 }
 
 watch(

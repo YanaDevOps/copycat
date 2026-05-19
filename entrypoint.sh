@@ -3,14 +3,32 @@
 [ "$EXEC_TOOL" ] || EXEC_TOOL=gosu
 [ "$COPYCAT_HOST" ] || COPYCAT_HOST=0.0.0.0
 [ "$COPYCAT_PORT" ] || COPYCAT_PORT=8080
+[ "$COPYCAT_PATH" ] || COPYCAT_PATH=/data
 
 set -e
+
+case "$COPYCAT_PATH" in
+    /*) ;;
+    *)
+        echo "COPYCAT_PATH must be an absolute path. Got '${COPYCAT_PATH}'."
+        exit 1
+        ;;
+esac
+
+case "$COPYCAT_PATH" in
+    /|/app|/usr|/etc|/var|/bin|/sbin|/root|/home)
+        echo "Refusing unsafe COPYCAT_PATH '${COPYCAT_PATH}'."
+        exit 1
+        ;;
+esac
 
 echo "\
 ======================================
 ========= Welcome to CopyCat =========
 ======================================
 "
+
+echo "Using CopyCat data directory: ${COPYCAT_PATH}"
 
 copycat_command="python -m \
                   uvicorn \

@@ -1,6 +1,5 @@
 import os
 import re
-import shutil
 import sys
 
 from pydantic import BaseModel
@@ -9,8 +8,6 @@ from logger import logger
 
 ROOT_APP_DIR = ".copycat"
 ROOT_METADATA_FILE = "metadata.json"
-ROOT_INDEX_DIR = "index"
-ROOT_METADATA_LOCK = "metadata.lock"
 
 
 def camel_case(snake_case_str: str) -> str:
@@ -85,87 +82,45 @@ def replace_base_href(html_file, path_prefix):
 def resolve_root_app_dir(base_path: str) -> str:
     preferred_path = os.path.join(base_path, ROOT_APP_DIR)
     os.makedirs(preferred_path, exist_ok=True)
-    legacy_path = _find_legacy_root_metadata_dir(base_path, preferred_path)
-    if legacy_path is not None:
-        _migrate_root_metadata_dir(legacy_path, preferred_path)
+    _copy_legacy_root_metadata(base_path, preferred_path)
     return preferred_path
 
 
-def _find_legacy_root_metadata_dir(
-    base_path: str, preferred_path: str
-) -> str | None:
-    candidates = []
-    with os.scandir(base_path) as entries:
-        for entry in entries:
-            if not entry.is_dir():
-                continue
-            if os.path.normcase(entry.path) == os.path.normcase(preferred_path):
-                continue
-            if not entry.name.startswith("."):
-                continue
-            metadata_path = os.path.join(entry.path, ROOT_METADATA_FILE)
-            if os.path.isfile(metadata_path):
-                candidates.append(entry.path)
-    if len(candidates) == 1:
-        return candidates[0]
-    if len(candidates) > 1:
-        logger.warning(
-            "Found multiple legacy metadata directories in '%s'. "
-            + "Skipping automatic migration.",
-            base_path,
-        )
-    return None
-
-
-def _migrate_root_metadata_dir(legacy_path: str, preferred_path: str) -> None:
-    index_path = os.path.join(preferred_path, ROOT_INDEX_DIR)
-    os.makedirs(index_path, exist_ok=True)
-
-    metadata_source = os.path.join(legacy_path, ROOT_METADATA_FILE)
+def _copy_legacy_root_metadata(base_path: str, preferred_path: str) -> None:
     metadata_target = os.path.join(preferred_path, ROOT_METADATA_FILE)
-    if os.path.isfile(metadata_source) and not os.path.exists(metadata_target):
+    if os.path.exists(metadata_target):
+        return
+
+    for legacy_dir in _legacy_metadata_dirs(base_path):
+        metadata_source = os.path.join(legacy_dir, ROOT_METADATA_FILE)
+        if not os.path.isfile(metadata_source):
+            continue
         logger.info(
-            "Migrating root metadata from '%s' to '%s'.",
+            "Copying legacy root metadata from '%s' to '%s'.",
             metadata_source,
             metadata_target,
         )
-        os.replace(metadata_source, metadata_target)
+        with open(metadata_source, "rb") as source:
+            with open(metadata_target, "xb") as target:
+                target.write(source.read())
+        return
 
-    for entry_name in os.listdir(legacy_path):
-        source_path = os.path.join(legacy_path, entry_name)
-        if entry_name == ROOT_METADATA_LOCK:
-            _remove_path(source_path)
+
+def _legacy_metadata_dirs(base_path: str) -> list[str]:
+    raw_value = get_env(
+        "COPYCAT_LEGACY_METADATA_DIRS",
+        mandatory=False,
+        default=".flatnotes",
+    )
+    legacy_dirs = []
+    for raw_name in raw_value.split(","):
+        name = raw_name.strip()
+        if not name or os.path.isabs(name) or os.path.sep in name:
             continue
-        target_path = os.path.join(index_path, entry_name)
-        if os.path.exists(target_path):
-            logger.warning(
-                "Skipping migrated cache item '%s' because '%s' already exists.",
-                source_path,
-                target_path,
-            )
-            continue
-        logger.info(
-            "Migrating cache item from '%s' to '%s'.",
-            source_path,
-            target_path,
-        )
-        os.replace(source_path, target_path)
-
-    try:
-        os.rmdir(legacy_path)
-        logger.info("Removed empty legacy metadata directory '%s'.", legacy_path)
-    except OSError:
-        logger.warning(
-            "Legacy metadata directory '%s' was not removed automatically.",
-            legacy_path,
-        )
-
-
-def _remove_path(path: str) -> None:
-    if os.path.isdir(path):
-        shutil.rmtree(path)
-    elif os.path.exists(path):
-        os.remove(path)
+        legacy_path = os.path.join(base_path, name)
+        if os.path.isdir(legacy_path):
+            legacy_dirs.append(legacy_path)
+    return legacy_dirs
 
 
 class CustomBaseModel(BaseModel):

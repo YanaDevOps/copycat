@@ -3,6 +3,7 @@ import html
 import os
 import re
 import shutil
+import tempfile
 import time
 import unicodedata
 from dataclasses import dataclass
@@ -25,6 +26,7 @@ from helpers import get_env, is_valid_filename, resolve_root_app_dir
 from logger import logger
 from metadata.file_system import FileSystemMetadata
 from metadata.models import Tag, TagRef
+from path_safety import UnsafeIndexPathError, assert_safe_index_directory
 
 from ..base import BaseNotes
 from ..models import Note, NoteCreate, NoteUpdate, SearchResult
@@ -66,9 +68,13 @@ class FileSystemNotes(BaseNotes):
         storage_path: str | None = None,
         metadata_storage=None,
         index_path: str | None = None,
+        data_root: str | None = None,
     ):
         self.storage_path = storage_path or get_env(
             "COPYCAT_PATH", mandatory=True
+        )
+        self.data_root = data_root or get_env(
+            "COPYCAT_PATH", mandatory=False, default=self.storage_path
         )
         if not os.path.exists(self.storage_path):
             raise NotADirectoryError(
@@ -77,6 +83,16 @@ class FileSystemNotes(BaseNotes):
         self.metadata_storage = metadata_storage or FileSystemMetadata()
         self.index_path = index_path or os.path.join(
             resolve_root_app_dir(self.storage_path), "index"
+        )
+        self._warned_empty_note_metadata_history = False
+        self._validate_index_path()
+        logger.info(
+            "Initializing notes storage: data_root='%s', notes_path='%s', "
+            "metadata_path='%s', index_path='%s'.",
+            self.data_root,
+            self.storage_path,
+            getattr(self.metadata_storage, "storage_path", "unknown"),
+            self.index_path,
         )
         self.index = self._load_index()
         self._sync_index_with_retry(optimize=True)
@@ -281,23 +297,31 @@ class FileSystemNotes(BaseNotes):
 
     def _load_index(self) -> Index:
         """Load the note index or create new if not exists."""
-        index_dir_exists = os.path.exists(self._index_path)
+        index_path = self._validate_index_path()
+        index_dir_exists = os.path.exists(index_path)
+        if index_dir_exists and not os.path.isdir(index_path):
+            raise UnsafeIndexPathError(
+                f"Refusing to use index path '{index_path}' because it is "
+                "not a directory."
+            )
         if index_dir_exists and whoosh.index.exists_in(
-            self._index_path, indexname=INDEX_SCHEMA_VERSION
+            index_path, indexname=INDEX_SCHEMA_VERSION
         ):
-            logger.info("Loading existing index")
+            logger.info("Loading existing index from '%s'.", index_path)
             return whoosh.index.open_dir(
-                self._index_path, indexname=INDEX_SCHEMA_VERSION
+                index_path, indexname=INDEX_SCHEMA_VERSION
             )
         else:
             if index_dir_exists:
-                logger.info("Deleting outdated index")
-                self._clear_dir(self._index_path)
+                logger.info(
+                    "Deleting outdated index cache at '%s'.", index_path
+                )
+                self._clear_index_dir(index_path)
             else:
-                os.mkdir(self._index_path)
-            logger.info("Creating new index")
+                os.makedirs(index_path, exist_ok=True)
+            logger.info("Creating new index at '%s'.", index_path)
             return whoosh.index.create_in(
-                self._index_path, IndexSchema, indexname=INDEX_SCHEMA_VERSION
+                index_path, IndexSchema, indexname=INDEX_SCHEMA_VERSION
             )
 
     @classmethod
@@ -325,16 +349,20 @@ class FileSystemNotes(BaseNotes):
 
     def _list_all_note_filenames(self) -> List[str]:
         """Return a list of all note filenames."""
-        return [
+        filenames = [
             os.path.split(filepath)[1]
             for filepath in glob.glob(
                 os.path.join(self.storage_path, "*" + MARKDOWN_EXT)
             )
         ]
+        self._warn_if_notes_missing_with_metadata_history(len(filenames))
+        return filenames
 
     def _sync_index(self, optimize: bool = False, clean: bool = False) -> None:
         """Synchronize the index with the notes directory."""
         indexed = set()
+        note_filenames = self._list_all_note_filenames()
+        note_count_before = len(note_filenames)
         writer = self.index.writer()
         if clean:
             writer.mergetype = writing.CLEAR
@@ -356,14 +384,20 @@ class FileSystemNotes(BaseNotes):
                     indexed.add(idx_filename)
                 else:
                     indexed.add(idx_filename)
-        for filename in self._list_all_note_filenames():
+        for filename in note_filenames:
             if filename not in indexed:
                 self._add_note_to_index(
                     writer, self._get_by_filename(filename)
                 )
                 logger.info(f"'{filename}' added to index")
         writer.commit(optimize=optimize)
-        logger.info("Index synchronized")
+        note_count_after = len(self._list_all_note_filenames())
+        logger.info(
+            "Index synchronized for '%s' (notes_before=%d, notes_after=%d).",
+            self.storage_path,
+            note_count_before,
+            note_count_after,
+        )
 
     def _sync_index_with_retry(
         self,
@@ -827,14 +861,63 @@ class FileSystemNotes(BaseNotes):
     def _strip_ext(filename):
         return os.path.splitext(filename)[0]
 
-    @staticmethod
-    def _clear_dir(path):
+    def _validate_index_path(self) -> str:
+        try:
+            return assert_safe_index_directory(
+                index_path=self.index_path,
+                data_root=self.data_root,
+                notes_path=self.storage_path,
+            )
+        except UnsafeIndexPathError:
+            logger.critical(
+                "Unsafe index path configuration: data_root='%s', "
+                "notes_path='%s', index_path='%s'. Refusing to continue.",
+                self.data_root,
+                self.storage_path,
+                self.index_path,
+            )
+            raise
+
+    def _clear_index_dir(self, path):
+        path = assert_safe_index_directory(
+            index_path=path,
+            data_root=self.data_root,
+            notes_path=self.storage_path,
+        )
         for item in os.listdir(path):
             item_path = os.path.join(path, item)
             if os.path.isfile(item_path):
                 os.remove(item_path)
             elif os.path.isdir(item_path):
                 shutil.rmtree(item_path)
+
+    def _warn_if_notes_missing_with_metadata_history(
+        self, note_count: int
+    ) -> None:
+        if note_count != 0 or self._warned_empty_note_metadata_history:
+            return
+        metadata_note_count = self._metadata_note_count()
+        if metadata_note_count == 0:
+            return
+        self._warned_empty_note_metadata_history = True
+        logger.error(
+            "No markdown notes were found in '%s', but metadata at '%s' "
+            "references %d notes. This can indicate a wrong mount, stale "
+            "mount, or data loss on the persistent volume.",
+            self.storage_path,
+            getattr(self.metadata_storage, "file_path", "unknown"),
+            metadata_note_count,
+        )
+
+    def _metadata_note_count(self) -> int:
+        note_count = getattr(self.metadata_storage, "note_count", None)
+        if not callable(note_count):
+            return 0
+        try:
+            return int(note_count())
+        except Exception:
+            logger.exception("Failed to inspect note metadata count.")
+            return 0
 
     @staticmethod
     def _get_matched_fields(matched_terms):
@@ -850,8 +933,23 @@ class FileSystemNotes(BaseNotes):
     @staticmethod
     def _write_file(filepath: str, content: str, overwrite: bool = False):
         logger.debug(f"Writing to '{filepath}'")
-        with open(filepath, "w" if overwrite else "x", encoding="utf-8") as f:
-            f.write(content)
+        if not overwrite:
+            with open(filepath, "x", encoding="utf-8") as f:
+                f.write(content)
+            return
+
+        fd, tmp_path = tempfile.mkstemp(
+            dir=os.path.dirname(filepath),
+            prefix=".copycat-note-",
+            suffix=".tmp",
+        )
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write(content)
+            os.replace(tmp_path, filepath)
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
 
     @staticmethod
     def _created_at_for_filepath(filepath: str) -> float:

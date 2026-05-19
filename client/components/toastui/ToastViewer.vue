@@ -8,6 +8,7 @@ import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import baseOptions from "./baseOptions.js";
 import extendedAutolinks from "./extendedAutolinks.js";
+import { groupQueryValue } from "../../routeHelpers.js";
 
 const props = defineProps({
   initialValue: String,
@@ -20,30 +21,33 @@ const props = defineProps({
 const viewerElement = ref();
 let viewer = null;
 
-function withGroupQuery(url) {
-  if (!props.group || /(^|[?&])group=/.test(url)) {
+function withAttachmentGroupQuery(url) {
+  const group = groupQueryValue(props.group);
+  if (!group || /(^|[?&])group=/.test(url)) {
     return url;
   }
 
   const [baseWithQuery, hash = ""] = url.split("#", 2);
   const separator = baseWithQuery.includes("?") ? "&" : "?";
-  return `${baseWithQuery}${separator}group=${encodeURIComponent(props.group)}${
+  return `${baseWithQuery}${separator}group=${encodeURIComponent(group)}${
     hash ? `#${hash}` : ""
   }`;
 }
 
 function normalizeAttachmentUrls(content) {
-  if (!content || !props.group) {
+  if (!content || !groupQueryValue(props.group)) {
     return content || "";
   }
 
   let normalized = content.replace(
     /(\]\()((?:\/)?attachments\/[^)\s]+)(\))/gi,
-    (_, prefix, url, suffix) => `${prefix}${withGroupQuery(url)}${suffix}`,
+    (_, prefix, url, suffix) =>
+      `${prefix}${withAttachmentGroupQuery(url)}${suffix}`,
   );
   normalized = normalized.replace(
     /((?:src|href)=["'])((?:\/)?attachments\/[^"']+)(["'])/gi,
-    (_, prefix, url, suffix) => `${prefix}${withGroupQuery(url)}${suffix}`,
+    (_, prefix, url, suffix) =>
+      `${prefix}${withAttachmentGroupQuery(url)}${suffix}`,
   );
   return normalized;
 }

@@ -3,6 +3,7 @@ import * as constants from "./constants.js";
 import { createRouter, createWebHistory } from "vue-router";
 
 import { authCheck } from "./api.js";
+import { canonicalizeLegacyGroupQuery } from "./routeHelpers.js";
 
 function getQueryStringValue(value) {
   return Array.isArray(value) ? value[0] : value;
@@ -94,6 +95,10 @@ const router = createRouter({
 // Check the user is authenticated on first navigation (unless going to login)
 let authChecked = false;
 router.beforeEach(async (to) => {
+  const canonicalRoute = canonicalizeLegacyGroupQuery(to);
+  if (canonicalRoute) {
+    return canonicalRoute;
+  }
   if (authChecked || to.name === "login") {
     return;
   }

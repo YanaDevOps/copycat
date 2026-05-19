@@ -54,7 +54,7 @@
 ### Build the image
 
 ```sh
-docker build -t copycat:latest .
+docker build -t ghcr.io/yanadevops/copycat:1.4.0 .
 ```
 
 ### Run with Docker
@@ -70,7 +70,7 @@ docker run -d \
   -e COPYCAT_SECRET_KEY='replace-this-with-a-long-random-secret' \
   -v "$(pwd)/data:/data" \
   -p 8080:8080 \
-  ghcr.io/yanadevops/copycat:latest
+  ghcr.io/yanadevops/copycat:1.4.0
 ```
 
 Open `http://localhost:8080`.
@@ -82,7 +82,7 @@ services:
   copycat:
     container_name: copycat
     build: .
-    image: ghcr.io/yanadevops/copycat:latest
+    image: ghcr.io/yanadevops/copycat:1.4.0
     environment:
       PUID: 1000
       PGID: 1000
@@ -132,7 +132,7 @@ helm upgrade --install copycat ./helm/copycat \
   --namespace copycat \
   --create-namespace \
   --set image.repository=your-registry/copycat \
-  --set image.tag=latest \
+  --set image.tag=1.4.0 \
   --set auth.username=admin \
   --set auth.password='changeMe!' \
   --set auth.secretKey='replace-this-with-a-long-random-secret'
@@ -162,7 +162,7 @@ helm upgrade --install copycat ./helm/copycat \
   --create-namespace \
   -f ./helm/copycat/values-statefulset.yaml \
   --set image.repository=your-registry/copycat \
-  --set image.tag=latest \
+  --set image.tag=1.4.0 \
   --set auth.username=admin \
   --set auth.password='changeMe!' \
   --set auth.secretKey='replace-this-with-a-long-random-secret'
@@ -226,7 +226,38 @@ ingress:
 
 ### Upgrade note
 
-If you already have a persistent `/data` volume, the app keeps using the same data. Root metadata is migrated into `/data/.copycat` automatically on startup.
+If you already have a persistent `/data` volume, the app keeps using the same data. Root metadata from an explicit legacy `.flatnotes` directory is copied into `/data/.copycat` automatically only when `/data/.copycat/metadata.json` does not already exist.
+
+### Kubernetes data safety notes
+
+Keep CopyCat at a single replica for the normal single-volume setup. The app is
+designed around one writable notes directory and one writable search index.
+
+Prefer Kubernetes `fsGroup` and `fsGroupChangePolicy: OnRootMismatch` for volume
+ownership. Avoid custom init containers that recursively modify or recreate
+`/data`, and never run cleanup commands against the mounted data directory.
+
+If a pod starts with an unexpectedly empty `/data`, stop the workload before
+restoring data and inspect the PVC/PV and CSI node logs. CopyCat logs the
+resolved notes, metadata, and index paths on startup to make mount mismatches
+easier to diagnose.
+
+CopyCat also validates the data root at startup. A brand-new empty volume is
+allowed and receives `/data/.copycat/install.json`. If a later start sees only
+cache/index files or sees that previously known durable data disappeared, the
+default `COPYCAT_DATA_GUARD_MODE=fail_existing` stops startup before new data is
+written. Use `COPYCAT_DATA_GUARD_MODE=warn` only for emergency inspection.
+
+For Velero/Kopia backups, verify that CopyCat pod volume backups are non-empty:
+
+```sh
+kubectl -n velero get podvolumebackups.velero.io \
+  -l velero.io/backup-name=<backup-name> \
+  -o wide | grep copycat
+
+kubectl -n velero describe podvolumerestores.velero.io \
+  -l velero.io/restore-name=<restore-name>
+```
 
 ## Configuration
 
@@ -242,6 +273,7 @@ If you already have a persistent `/data` volume, the app keeps using the same da
 | `COPYCAT_PATH` | No | `/data` | Data directory inside the container |
 | `COPYCAT_HOST` | No | `0.0.0.0` | Bind address |
 | `COPYCAT_PORT` | No | `8080` | HTTP port |
+| `COPYCAT_DATA_GUARD_MODE` | No | `fail_existing` | Data-root guard mode: `fail_existing`, `warn`, or `off` |
 | `PUID` | No | `1000` | Runtime user ID for mounted volumes |
 | `PGID` | No | `1000` | Runtime group ID for mounted volumes |
 
@@ -264,6 +296,23 @@ If you already have a persistent `/data` volume, the app keeps using the same da
 | `COPYCAT_ATTACHMENT_BLOCK_ACTIVE_CONTENT` | `false` | Block risky attachment types |
 | `COPYCAT_ATTACHMENT_BLOCKED_EXTENSIONS` | safe default list | Override blocked file extensions |
 | `COPYCAT_SET_HTTPONLY_AUTH_COOKIE` | `false` | Store auth token in an HTTP-only cookie |
+| `COPYCAT_LEGACY_METADATA_DIRS` | `.flatnotes` | Comma-separated legacy metadata dirs to copy from on startup |
+
+### Logging variables
+
+CopyCat always logs to stdout/stderr for `kubectl logs` and Docker logs. It also
+writes rotating application logs to `/data/.copycat/logs/copycat.log` by
+default, so the most important startup and runtime errors survive pod restarts.
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `COPYCAT_LOG_LEVEL` | `INFO` | Application and access log level |
+| `COPYCAT_LOG_TO_FILE` | `true` | Enable persistent file logging |
+| `COPYCAT_LOG_FILE` | `/data/.copycat/logs/copycat.log` | Persistent log file path |
+| `COPYCAT_LOG_RETENTION_DAYS` | `7` | Daily log retention window |
+| `COPYCAT_LOG_MAX_BYTES` | `10485760` | Rotate early when the active log exceeds this size |
+| `COPYCAT_LOG_BACKUP_COUNT` | `7` | Maximum rotated files to keep |
+| `COPYCAT_ACCESS_LOG` | `true` | Enable HTTP access logs, excluding `/health` |
 
 ## Data Layout
 
@@ -293,7 +342,7 @@ Notes:
 - Managed users and groups are stored inside `/data/.copycat/auth`.
 - Favorites, tags, and note metadata are stored in `metadata.json`.
 - Search index files are cache and can be rebuilt.
-- Older root metadata directories are migrated automatically into `.copycat`.
+- Explicit legacy root metadata directories are copied into `.copycat` only when configured and only if target metadata is missing.
 
 Useful checks inside the container:
 

@@ -185,6 +185,11 @@ import {
 } from "../constants.js";
 import { useGlobalStore } from "../globalStore.js";
 import { getToastOptions, groupNotesByMonth } from "../helpers.js";
+import {
+  cleanNoteTitleForRoute,
+  groupQueryValue,
+  withGroupQuery,
+} from "../routeHelpers.js";
 
 const props = defineProps({
   searchTerm: {
@@ -280,13 +285,16 @@ const isSearchMode = computed(
 );
 const favoritesRoute = computed(() => ({
   name: "home",
-  query: {
-    [params.searchTerm]: "*",
-    [params.sort]: searchSortOptions.lastModified,
-    [params.order]: searchOrderOptions.desc,
-    [params.favoriteOnly]: "true",
-    ...(activeGroup.value ? { [params.group]: activeGroup.value } : {}),
-  },
+  query: withGroupQuery(
+    {
+      [params.searchTerm]: "*",
+      [params.sort]: searchSortOptions.lastModified,
+      [params.order]: searchOrderOptions.desc,
+      [params.favoriteOnly]: "true",
+    },
+    activeGroup.value,
+    { allowAll: true },
+  ),
 }));
 const favoriteNotes = computed(() => notes.value.filter((note) => note.favorite));
 const pinnedNotes = computed(() =>
@@ -470,11 +478,7 @@ function buildHomeQuery({
   if (favoriteOnly) {
     query[params.favoriteOnly] = "true";
   }
-  if (group) {
-    query[params.group] = group;
-  }
-
-  return query;
+  return withGroupQuery(query, group, { allowAll: true });
 }
 
 function updateRoute(options) {
@@ -489,7 +493,7 @@ function updateGroup(group) {
   if (isOverviewMode.value) {
     router.push({
       name: "home",
-      query: group ? { [params.group]: group } : {},
+      query: withGroupQuery({}, group, { allowAll: true }),
     });
     return;
   }
@@ -530,8 +534,8 @@ function openNote(note) {
   const group = noteGroupValue(note);
   router.push({
     name: "note",
-    params: { title: note.title },
-    query: group ? { [params.group]: group } : {},
+    params: { title: cleanNoteTitleForRoute(note.title) },
+    query: withGroupQuery({}, group),
   });
 }
 
@@ -618,12 +622,8 @@ function duplicateHandler(note) {
       );
       router.push({
         name: "note",
-        params: { title: data.title },
-        query: data.groupId
-          ? { [params.group]: data.groupId }
-          : noteGroupValue(note)
-            ? { [params.group]: noteGroupValue(note) }
-            : {},
+        params: { title: cleanNoteTitleForRoute(data.title) },
+        query: withGroupQuery({}, data.groupId || noteGroupValue(note)),
       });
     })
     .catch((error) => {
@@ -633,7 +633,7 @@ function duplicateHandler(note) {
 
 function downloadHandler(note) {
   window.location.assign(
-    getNoteExportUrl(note.title, noteGroupValue(note)),
+    getNoteExportUrl(note.title, groupQueryValue(noteGroupValue(note))),
   );
 }
 

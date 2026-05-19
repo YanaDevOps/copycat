@@ -188,6 +188,7 @@ import {
   noteImportAccept,
   noteImportMaxBytes,
 } from "../noteImport.js";
+import { groupQueryValue, withGroupQuery } from "../routeHelpers.js";
 import { clearStoredToken } from "../tokenStorage.js";
 
 const globalStore = useGlobalStore();
@@ -250,15 +251,15 @@ const metricBadges = computed(() => [
   },
 ]);
 const allNotesQuery = computed(() => {
-  const query = {
-    [params.searchTerm]: "*",
-    [params.sort]: searchSortOptions.lastModified,
-    [params.order]: searchOrderOptions.desc,
-  };
-  if (activeGroup.value) {
-    query[params.group] = activeGroup.value;
-  }
-  return query;
+  return withGroupQuery(
+    {
+      [params.searchTerm]: "*",
+      [params.sort]: searchSortOptions.lastModified,
+      [params.order]: searchOrderOptions.desc,
+    },
+    activeGroup.value,
+    { allowAll: true },
+  );
 });
 const favoritesQuery = computed(() => {
   const query = {
@@ -269,7 +270,7 @@ const favoritesQuery = computed(() => {
 });
 const tagsRoute = computed(() => ({
   name: "tags",
-  query: activeGroup.value ? { [params.group]: activeGroup.value } : {},
+  query: withGroupQuery({}, activeGroup.value, { allowAll: true }),
 }));
 const importProgressDescription = computed(() => {
   if (!importProgress.value.currentFileName) {
@@ -363,14 +364,11 @@ const showNewButton = computed(() => {
 });
 const newNoteRoute = computed(() => ({
   name: "new",
-  query:
-    activeGroup.value && activeGroup.value !== "all"
-      ? { [params.group]: activeGroup.value }
-      : {},
+  query: withGroupQuery({}, activeGroup.value),
 }));
 
 function downloadAllHandler() {
-  const group = isAdmin.value ? "all" : activeGroup.value || undefined;
+  const group = isAdmin.value ? "all" : groupQueryValue(activeGroup.value);
   window.location.assign(getAllNotesExportUrl(group));
 }
 

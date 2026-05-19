@@ -351,9 +351,10 @@ import GroupScopeDropdown from "../components/GroupScopeDropdown.vue";
 import LoadingIndicator from "../components/LoadingIndicator.vue";
 import Popover from "../components/Popover.vue";
 import Tag from "../components/Tag.vue";
-import { authTypes, params, tagColorPalette } from "../constants.js";
+import { authTypes, tagColorPalette } from "../constants.js";
 import { useGlobalStore } from "../globalStore.js";
 import { getToastOptions } from "../helpers.js";
+import { withGroupQuery } from "../routeHelpers.js";
 
 const props = defineProps({
   group: {
@@ -598,7 +599,7 @@ function updateGroup(group) {
   globalStore.currentGroup = group || null;
   router.push({
     name: "tags",
-    query: group ? { [params.group]: group } : {},
+    query: withGroupQuery({}, group, { allowAll: true }),
   });
 }
 

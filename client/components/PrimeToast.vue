@@ -18,7 +18,7 @@ const style = {
     ],
   }),
   icon: "invisible h-0 w-0",
-  summary: "font-semibold tracking-[-0.02em] text-theme-text",
+  summary: "font-semibold text-theme-text",
   detail: "mt-1 text-sm leading-6 text-theme-text-muted",
 };
 </script>

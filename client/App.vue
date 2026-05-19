@@ -34,6 +34,7 @@ import { loadTheme } from "./helpers.js";
 import NavBar from "./partials/NavBar.vue";
 import SearchModal from "./partials/SearchModal.vue";
 import LoadingIndicator from "./components/LoadingIndicator.vue";
+import { withGroupQuery } from "./routeHelpers.js";
 import router from "./router.js";
 import { setManagedCookieMode } from "./tokenStorage.js";
 
@@ -55,11 +56,10 @@ Mousetrap.bind("/", () => {
 // 'CTRL + ALT/OPT + N' to create new note
 Mousetrap.bindGlobal("ctrl+alt+n", () => {
   if (route.name !== "login") {
-    const query =
-      globalStore.currentGroup && globalStore.currentGroup !== "all"
-        ? { group: globalStore.currentGroup }
-        : {};
-    router.push({ name: "new", query });
+    router.push({
+      name: "new",
+      query: withGroupQuery({}, globalStore.currentGroup),
+    });
     return false;
   }
 });
@@ -67,9 +67,9 @@ Mousetrap.bindGlobal("ctrl+alt+n", () => {
 // 'CTRL + ALT/OPT + H' to go to home
 Mousetrap.bindGlobal("ctrl+alt+h", () => {
   if (route.name !== "login") {
-    const query = globalStore.currentGroup
-      ? { group: globalStore.currentGroup }
-      : {};
+    const query = withGroupQuery({}, globalStore.currentGroup, {
+      allowAll: true,
+    });
     router.push({ name: "home", query });
     return false;
   }

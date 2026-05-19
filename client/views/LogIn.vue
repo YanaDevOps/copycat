@@ -4,7 +4,7 @@
       <Logo class="mb-8" />
 
       <p class="app-kicker">Protected workspace</p>
-      <h1 class="text-4xl font-semibold tracking-[-0.05em] text-theme-text sm:text-5xl">
+      <h1 class="text-4xl font-semibold text-theme-text sm:text-5xl">
         Sign in
       </h1>
       <p class="app-subtitle max-w-none">
@@ -72,6 +72,7 @@ import TextInput from "../components/TextInput.vue";
 import { authTypes } from "../constants.js";
 import { useGlobalStore } from "../globalStore.js";
 import { getToastOptions } from "../helpers.js";
+import { withGroupQuery } from "../routeHelpers.js";
 import { setManagedCookieMode, storeToken } from "../tokenStorage.js";
 
 const props = defineProps({ redirect: String });
@@ -100,7 +101,10 @@ function logIn() {
       if (props.redirect) {
         router.push(props.redirect);
       } else {
-        router.push({ name: "home", query: config.defaultGroupId ? { group: config.defaultGroupId } : {} });
+        router.push({
+          name: "home",
+          query: withGroupQuery({}, config.defaultGroupId),
+        });
       }
     })
     .catch((error) => {
