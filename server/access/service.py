@@ -364,10 +364,12 @@ class AccessService:
     ) -> list[SearchResult]:
         normalized_group = (group or "").strip().lower()
         logger.debug(
-            "Resolving library scope: user='%s', group='%s', for_write=%s.",
+            "Searching notes: user='%s', group='%s', term='%s', sort='%s', order='%s'.",
             principal.username,
             normalized_group or "<default>",
-            for_write,
+            term,
+            sort,
+            order,
         )
         if normalized_group == "all":
             scopes = self._all_scopes(principal)
