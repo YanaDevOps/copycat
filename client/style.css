@@ -285,6 +285,10 @@
         height: 176px;
     }
 
+    .note-link-shell-search {
+        height: 196px;
+    }
+
     .timeline-group {
         @apply grid w-full max-w-none gap-4 self-stretch lg:grid-cols-[150px_minmax(0,1fr)] lg:justify-start lg:gap-8;
     }
@@ -481,27 +485,6 @@
         background: rgb(var(--theme-background) / 0.26);
     }
 
-    .note-card-title {
-        position: relative;
-        padding-right: 0.75rem;
-    }
-
-    .note-card-title-fade::after {
-        content: "";
-        position: absolute;
-        right: 0;
-        bottom: 0;
-        width: 3.5rem;
-        height: 1.45rem;
-        pointer-events: none;
-        background: linear-gradient(
-            90deg,
-            rgb(var(--theme-panel) / 0) 0%,
-            rgb(var(--theme-panel) / 0.88) 68%,
-            rgb(var(--theme-panel) / 0.98) 100%
-        );
-    }
-
     .note-card-preview {
         @apply overflow-hidden rounded-[20px] border border-theme-border/70 bg-theme-background/25 px-3 py-1.5 text-sm text-theme-text-muted;
         line-height: 1.45rem;
@@ -590,6 +573,10 @@
 
     .note-link-shell-compact {
         height: 168px;
+    }
+
+    .note-link-shell-search {
+        height: 188px;
     }
 
     .note-link-shell-rail {

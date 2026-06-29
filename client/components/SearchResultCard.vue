@@ -8,7 +8,6 @@
       <div class="min-w-0 flex-1" :class="compact ? 'space-y-1.5' : 'space-y-2'">
         <div
           class="note-card-title line-clamp-2 break-words text-base font-semibold text-theme-text sm:text-lg"
-          :class="{ 'note-card-title-fade': titleFade }"
           v-html="sanitizedTitleMarkup"
         ></div>
         <div class="flex flex-wrap items-center gap-1.5">
@@ -191,7 +190,6 @@ const props = defineProps({
     type: Number,
     default: 4,
   },
-  titleFade: Boolean,
 });
 
 defineEmits([

@@ -66,7 +66,6 @@
                     :availableTags="availableTags"
                     :allowQuickTagging="allowQuickTagging"
                     :maxVisibleTags="2"
-                    titleFade
                     @open="openNote(note)"
                     @toggleFavorite="toggleFavoriteHandler(note)"
                     @toggleTag="toggleTagHandler(note, $event)"
@@ -112,6 +111,7 @@
                     v-for="note in group.items"
                     :key="note.uniqueKey"
                     class="note-link-shell note-link-shell-compact cursor-pointer"
+                    :class="{ 'note-link-shell-search': isSearchMode }"
                   >
                     <SearchResultCard
                       :result="note"
