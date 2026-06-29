@@ -5,7 +5,7 @@
     </div>
     <div
       v-if="isOpen && !teleport"
-      class="absolute z-[90] max-h-[min(28rem,70vh)] max-w-[calc(100vw-2rem)] min-w-[16rem] overflow-auto rounded-[24px] border border-theme-border bg-theme-panel-strong/95 p-3 shadow-[0_24px_80px_rgb(var(--theme-shadow)/0.18)] backdrop-blur-xl"
+      class="absolute z-[90] max-h-[min(28rem,70vh)] max-w-[calc(100vw-2rem)] min-w-[16rem] overflow-auto rounded-[24px] border border-theme-border bg-theme-panel-strong/95 p-3 shadow-[0_24px_80px_rgb(var(--theme-shadow)/0.18)]"
       :class="[
         {
           'left-0': align === 'left',
@@ -22,7 +22,7 @@
       <div
         v-if="isOpen && teleport"
         ref="panel"
-        class="z-[90] max-h-[min(28rem,70vh)] max-w-[calc(100vw-2rem)] min-w-[16rem] overflow-auto rounded-[24px] border border-theme-border bg-theme-panel-strong/95 p-3 shadow-[0_24px_80px_rgb(var(--theme-shadow)/0.18)] backdrop-blur-xl"
+        class="z-[90] max-h-[min(28rem,70vh)] max-w-[calc(100vw-2rem)] min-w-[16rem] overflow-auto rounded-[24px] border border-theme-border bg-theme-panel-strong/95 p-3 shadow-[0_24px_80px_rgb(var(--theme-shadow)/0.18)]"
         :class="panelClass"
         :style="panelStyle"
       >

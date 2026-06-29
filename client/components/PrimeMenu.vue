@@ -21,7 +21,7 @@ import IconLabel from "./IconLabel.vue";
 const menu = ref();
 
 const style = {
-  root: "w-[260px] rounded-[24px] border border-theme-border bg-theme-panel-strong/95 p-2 shadow-[0_24px_80px_rgb(var(--theme-shadow)/0.18)] backdrop-blur-xl",
+  root: "w-[260px] rounded-[24px] border border-theme-border bg-theme-panel-strong/95 p-2 shadow-[0_24px_80px_rgb(var(--theme-shadow)/0.18)]",
   menuitem: ({ context }) => ({
     class: [
       "rounded-[18px] px-3 py-3 text-theme-text-muted",

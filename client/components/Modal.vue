@@ -2,7 +2,7 @@
   <!-- Mask -->
   <div
     v-if="isVisible"
-    class="fixed inset-0 z-50 flex min-h-dvh items-start justify-center bg-slate-950/45 px-3 py-10 backdrop-blur-md sm:py-16"
+    class="fixed inset-0 z-50 flex min-h-dvh items-start justify-center bg-slate-950/45 px-3 py-10 sm:py-16"
     @click.self="closeHandler"
   >
     <!-- Modal -->

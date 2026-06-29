@@ -9,22 +9,6 @@
   />
 
   <div class="page-shell">
-    <section class="app-surface app-hero">
-      <div class="relative z-10 flex flex-col gap-6">
-        <div class="max-w-3xl">
-          <Logo class="home-hero-logo mb-6" />
-          <p class="app-kicker">Knowledge base</p>
-          <h1 class="app-title app-title-home">
-            Search, revisit and organize your notes.
-          </h1>
-          <p class="app-subtitle app-subtitle-home">
-            Browse favorites and move through your notes from one calmer
-            starting point.
-          </p>
-        </div>
-      </div>
-    </section>
-
     <LoadingIndicator ref="loadingIndicator">
       <div class="notes-column space-y-6">
         <div class="list-toolbar">
@@ -179,7 +163,6 @@ import {
 import ConfirmModal from "../components/ConfirmModal.vue";
 import GroupScopeDropdown from "../components/GroupScopeDropdown.vue";
 import LoadingIndicator from "../components/LoadingIndicator.vue";
-import Logo from "../components/Logo.vue";
 import SearchResultCard from "../components/SearchResultCard.vue";
 import SortDropdown from "../components/SortDropdown.vue";
 import TagFilterDropdown from "../components/TagFilterDropdown.vue";

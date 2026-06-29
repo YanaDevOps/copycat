@@ -54,11 +54,12 @@
         --theme-border: 214 209 202;
         min-height: 100vh;
         color: rgb(var(--theme-text));
-        background:
-            radial-gradient(circle at top left, rgba(250, 198, 160, 0.45), transparent 28%),
-            radial-gradient(circle at top right, rgba(121, 188, 153, 0.24), transparent 24%),
-            linear-gradient(180deg, #f7f3ee 0%, #eee9e2 54%, #ebe4dd 100%);
-        background-attachment: fixed;
+        background-color: rgb(var(--theme-background));
+        background-image: url("assets/backgrounds/app-background-light.webp");
+        background-position: center top;
+        background-repeat: no-repeat;
+        background-size: cover;
+        background-attachment: scroll;
     }
 
     body.dark {
@@ -74,38 +75,17 @@
         --theme-accent: 128 214 173;
         --theme-shadow: 5 8 12;
         --theme-border: 58 69 84;
-        background:
-            radial-gradient(circle at top left, rgba(248, 166, 107, 0.12), transparent 30%),
-            radial-gradient(circle at 82% 0%, rgba(128, 214, 173, 0.09), transparent 26%),
-            linear-gradient(180deg, #090d12 0%, #0f141b 44%, #0d1218 100%);
-        background-attachment: fixed;
+        background-color: rgb(var(--theme-background));
+        background-image: url("assets/backgrounds/app-background-dark.webp");
+        background-position: center top;
+        background-repeat: no-repeat;
+        background-size: cover;
+        background-attachment: scroll;
     }
 
     body::before,
     body::after {
-        content: "";
-        position: fixed;
-        z-index: 0;
-        pointer-events: none;
-        border-radius: 9999px;
-        filter: blur(60px);
-        opacity: 0.8;
-    }
-
-    body::before {
-        top: 8rem;
-        right: 8vw;
-        width: 20rem;
-        height: 20rem;
-        background: rgb(var(--theme-brand) / 0.12);
-    }
-
-    body::after {
-        left: -5rem;
-        bottom: 10vh;
-        width: 18rem;
-        height: 18rem;
-        background: rgb(var(--theme-accent) / 0.12);
+        display: none;
     }
 
     #app {
@@ -141,16 +121,6 @@
     }
 
     @media (max-width: 767px), (prefers-reduced-motion: reduce) {
-        body,
-        body.dark {
-            background-attachment: scroll;
-        }
-
-        body::before,
-        body::after {
-            display: none;
-        }
-
         a,
         button,
         input,
@@ -184,7 +154,6 @@
         box-shadow:
             0 20px 80px rgb(var(--theme-shadow) / 0.18),
             inset 0 1px 0 rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(18px);
     }
 
     .app-surface-muted {
@@ -195,7 +164,6 @@
             );
         border: 1px solid rgb(var(--theme-border) / 0.72);
         box-shadow: 0 18px 60px rgb(var(--theme-shadow) / 0.12);
-        backdrop-filter: blur(16px);
     }
 
     .app-hero {
@@ -204,13 +172,7 @@
     }
 
     .app-hero::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        background:
-            radial-gradient(circle at top right, rgb(var(--theme-accent) / 0.18), transparent 24%),
-            linear-gradient(135deg, rgb(var(--theme-brand) / 0.12), transparent 48%);
+        display: none;
     }
 
     .app-kicker {
@@ -247,7 +209,6 @@
         @apply rounded-[24px] px-4 py-4;
         background: rgb(var(--theme-background) / 0.35);
         border: 1px solid rgb(var(--theme-border) / 0.6);
-        backdrop-filter: blur(14px);
     }
 
     .hero-stat-label {
@@ -276,12 +237,6 @@
     }
 
     @media (max-width: 767px), (prefers-reduced-motion: reduce) {
-        .app-surface,
-        .app-surface-muted,
-        .hero-stat {
-            backdrop-filter: none;
-        }
-
         .app-surface {
             box-shadow:
                 0 10px 28px rgb(var(--theme-shadow) / 0.1),
@@ -555,6 +510,40 @@
             rgb(var(--theme-panel) / 0.88) 68%,
             rgb(var(--theme-panel) / 0.98) 100%
         );
+    }
+
+    .note-card-preview {
+        @apply overflow-hidden rounded-[20px] border border-theme-border/70 bg-theme-background/25 px-3 py-1.5 text-sm text-theme-text-muted;
+        line-height: 1.45rem;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .note-card-preview-full {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
+    }
+
+    .note-card-preview-compact {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+    }
+
+    .note-card-preview-content,
+    .note-card-preview-content * {
+        display: inline;
+        max-width: 100%;
+        white-space: normal;
+    }
+
+    .note-card-preview-content .match,
+    .note-card-preview-content [class^="term"] {
+        border-radius: 0.35em;
+        background: rgb(var(--theme-brand) / 0.18);
+        color: rgb(var(--theme-text));
+        font-weight: 600;
     }
 
     .note-card-tags {

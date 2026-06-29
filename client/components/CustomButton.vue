@@ -2,7 +2,7 @@
   <button
     :type="type"
     :disabled="disabled"
-    class="app-button group relative inline-flex items-center justify-center gap-2 whitespace-nowrap border font-medium shadow-[0_12px_32px_rgb(var(--theme-shadow)/0.08)] backdrop-blur-sm"
+    class="app-button group relative inline-flex items-center justify-center gap-2 whitespace-nowrap border font-medium shadow-[0_12px_32px_rgb(var(--theme-shadow)/0.08)]"
     :class="buttonClass"
     :aria-label="label"
     :title="label"

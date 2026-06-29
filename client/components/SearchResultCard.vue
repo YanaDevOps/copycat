@@ -36,10 +36,13 @@
 
     <div
       v-if="showContentHighlights && result.contentHighlights"
-      class="rounded-[20px] border border-theme-border/70 bg-theme-background/25 text-sm leading-6 text-theme-text-muted"
-      :class="compact ? 'line-clamp-2 px-3 py-1.5' : 'line-clamp-3 px-4 py-2'"
+      class="note-card-preview"
+      :class="compact ? 'note-card-preview-compact' : 'note-card-preview-full'"
     >
-      <span v-html="sanitizedContentHighlights"></span>
+      <span
+        class="note-card-preview-content"
+        v-html="sanitizedContentHighlights"
+      ></span>
     </div>
 
     <div
