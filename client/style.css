@@ -55,11 +55,6 @@
         min-height: 100vh;
         color: rgb(var(--theme-text));
         background-color: rgb(var(--theme-background));
-        background-image: url("assets/backgrounds/app-background-light.webp");
-        background-position: center top;
-        background-repeat: no-repeat;
-        background-size: cover;
-        background-attachment: scroll;
     }
 
     body.dark {
@@ -76,11 +71,6 @@
         --theme-shadow: 5 8 12;
         --theme-border: 58 69 84;
         background-color: rgb(var(--theme-background));
-        background-image: url("assets/backgrounds/app-background-dark.webp");
-        background-position: center top;
-        background-repeat: no-repeat;
-        background-size: cover;
-        background-attachment: scroll;
     }
 
     body::before,

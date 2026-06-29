@@ -54,7 +54,7 @@
 ### Build the image
 
 ```sh
-docker build -t ghcr.io/yanadevops/copycat:1.4.4 .
+docker build -t ghcr.io/yanadevops/copycat:1.4.5 .
 ```
 
 ### Run with Docker
@@ -70,7 +70,7 @@ docker run -d \
   -e COPYCAT_SECRET_KEY='replace-this-with-a-long-random-secret' \
   -v "$(pwd)/data:/data" \
   -p 8080:8080 \
-  ghcr.io/yanadevops/copycat:1.4.4
+  ghcr.io/yanadevops/copycat:1.4.5
 ```
 
 Open `http://localhost:8080`.
@@ -82,7 +82,7 @@ services:
   copycat:
     container_name: copycat
     build: .
-    image: ghcr.io/yanadevops/copycat:1.4.4
+    image: ghcr.io/yanadevops/copycat:1.4.5
     environment:
       PUID: 1000
       PGID: 1000
@@ -132,7 +132,7 @@ helm upgrade --install copycat ./helm/copycat \
   --namespace copycat \
   --create-namespace \
   --set image.repository=your-registry/copycat \
-  --set image.tag=1.4.4 \
+  --set image.tag=1.4.5 \
   --set auth.username=admin \
   --set auth.password='changeMe!' \
   --set auth.secretKey='replace-this-with-a-long-random-secret'
@@ -162,7 +162,7 @@ helm upgrade --install copycat ./helm/copycat \
   --create-namespace \
   -f ./helm/copycat/values-statefulset.yaml \
   --set image.repository=your-registry/copycat \
-  --set image.tag=1.4.4 \
+  --set image.tag=1.4.5 \
   --set auth.username=admin \
   --set auth.password='changeMe!' \
   --set auth.secretKey='replace-this-with-a-long-random-secret'
