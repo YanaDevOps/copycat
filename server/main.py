@@ -1,3 +1,4 @@
+import time
 from typing import List, Literal
 
 from fastapi import (
@@ -352,11 +353,12 @@ def search(
     group: str | None = Query(default=None),
     principal: AuthPrincipal = Depends(get_current_principal),
 ):
+    started_at = time.perf_counter()
     if sort == "lastModified":
         sort = "last_modified"
     elif sort == "createdAt":
         sort = "created_at"
-    return access_service.search_notes(
+    results = access_service.search_notes(
         principal,
         group=group,
         term=term,
@@ -368,6 +370,20 @@ def search(
         favorite_only=favorite_only,
         limit=limit,
     )
+    logger.info(
+        "Search completed: term='%s', group='%s', sort='%s', order='%s', "
+        "favorite_only=%s, tag_count=%s, limit=%s, results=%s, duration_ms=%.1f.",
+        term,
+        group or "",
+        sort,
+        order,
+        favorite_only,
+        len(tag_ids),
+        limit,
+        len(results),
+        (time.perf_counter() - started_at) * 1000,
+    )
+    return results
 
 
 @router.get("/api/tags", response_model=List[Tag])

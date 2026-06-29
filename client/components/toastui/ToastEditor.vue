@@ -6,7 +6,7 @@
 import Editor from "@toast-ui/editor";
 import { onBeforeUnmount, onMounted, ref } from "vue";
 
-import baseOptions from "./baseOptions.js";
+import { buildBaseOptions } from "./baseOptions.js";
 
 const props = defineProps({
   initialValue: String,
@@ -27,11 +27,17 @@ const editorElement = ref();
 let toastEditor;
 let removePasteListener = null;
 let pasteRestoreDeadline = 0;
+let mountRequestId = 0;
 
-onMounted(() => {
+onMounted(async () => {
+  const requestId = ++mountRequestId;
   const editorHeight =
     props.height ||
     (window.matchMedia("(max-width: 767px)").matches ? "420px" : "620px");
+  const baseOptions = await buildBaseOptions({ codeSyntaxHighlight: true });
+  if (requestId !== mountRequestId || !editorElement.value) {
+    return;
+  }
 
   toastEditor = new Editor({
     ...baseOptions,
@@ -56,6 +62,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  mountRequestId += 1;
   removePasteListener?.();
   removePasteListener = null;
   toastEditor?.destroy?.();
@@ -213,8 +220,6 @@ defineExpose({ getMarkdown, setMarkdown, isWysiwygMode });
 
 <style>
 @import "@toast-ui/editor/dist/toastui-editor.css";
-@import "prismjs/themes/prism.css";
-@import "@toast-ui/editor-plugin-code-syntax-highlight/dist/toastui-editor-plugin-code-syntax-highlight.css";
 @import "./toastui-editor-overrides.scss";
 
 .toast-editor-root {

@@ -6,7 +6,7 @@
 import Viewer from "@toast-ui/editor/dist/toastui-editor-viewer";
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 
-import baseOptions from "./baseOptions.js";
+import { buildBaseOptions, markdownContainsCodeBlock } from "./baseOptions.js";
 import extendedAutolinks from "./extendedAutolinks.js";
 import { groupQueryValue } from "../../routeHelpers.js";
 
@@ -20,6 +20,7 @@ const props = defineProps({
 
 const viewerElement = ref();
 let viewer = null;
+let renderRequestId = 0;
 
 function withAttachmentGroupQuery(url) {
   const group = groupQueryValue(props.group);
@@ -65,8 +66,18 @@ function normalizedValue() {
   return normalizeSvgDimensions(normalizeAttachmentUrls(props.initialValue));
 }
 
-function renderViewer() {
+async function renderViewer() {
   if (!viewerElement.value) {
+    return;
+  }
+
+  const requestId = ++renderRequestId;
+  const initialValue = normalizedValue();
+  const baseOptions = await buildBaseOptions({
+    codeSyntaxHighlight: markdownContainsCodeBlock(initialValue),
+  });
+
+  if (requestId !== renderRequestId || !viewerElement.value) {
     return;
   }
 
@@ -76,7 +87,7 @@ function renderViewer() {
     ...baseOptions,
     extendedAutolinks,
     el: viewerElement.value,
-    initialValue: normalizedValue(),
+    initialValue,
   });
 }
 
@@ -90,13 +101,12 @@ watch(
 );
 
 onBeforeUnmount(() => {
+  renderRequestId += 1;
   viewer?.destroy?.();
 });
 </script>
 
 <style>
 @import "@toast-ui/editor/dist/toastui-editor-viewer.css";
-@import "prismjs/themes/prism.css";
-@import "@toast-ui/editor-plugin-code-syntax-highlight/dist/toastui-editor-plugin-code-syntax-highlight.css";
 @import "./toastui-editor-overrides.scss";
 </style>

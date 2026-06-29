@@ -54,7 +54,7 @@
 ### Build the image
 
 ```sh
-docker build -t ghcr.io/yanadevops/copycat:1.4.2 .
+docker build -t ghcr.io/yanadevops/copycat:1.4.3 .
 ```
 
 ### Run with Docker
@@ -70,7 +70,7 @@ docker run -d \
   -e COPYCAT_SECRET_KEY='replace-this-with-a-long-random-secret' \
   -v "$(pwd)/data:/data" \
   -p 8080:8080 \
-  ghcr.io/yanadevops/copycat:1.4.2
+  ghcr.io/yanadevops/copycat:1.4.3
 ```
 
 Open `http://localhost:8080`.
@@ -82,7 +82,7 @@ services:
   copycat:
     container_name: copycat
     build: .
-    image: ghcr.io/yanadevops/copycat:1.4.2
+    image: ghcr.io/yanadevops/copycat:1.4.3
     environment:
       PUID: 1000
       PGID: 1000
@@ -132,7 +132,7 @@ helm upgrade --install copycat ./helm/copycat \
   --namespace copycat \
   --create-namespace \
   --set image.repository=your-registry/copycat \
-  --set image.tag=1.4.2 \
+  --set image.tag=1.4.3 \
   --set auth.username=admin \
   --set auth.password='changeMe!' \
   --set auth.secretKey='replace-this-with-a-long-random-secret'
@@ -162,7 +162,7 @@ helm upgrade --install copycat ./helm/copycat \
   --create-namespace \
   -f ./helm/copycat/values-statefulset.yaml \
   --set image.repository=your-registry/copycat \
-  --set image.tag=1.4.2 \
+  --set image.tag=1.4.3 \
   --set auth.username=admin \
   --set auth.password='changeMe!' \
   --set auth.secretKey='replace-this-with-a-long-random-secret'
@@ -258,6 +258,18 @@ kubectl -n velero get podvolumebackups.velero.io \
 kubectl -n velero describe podvolumerestores.velero.io \
   -l velero.io/restore-name=<restore-name>
 ```
+
+### Performance notes
+
+CopyCat keeps the note viewer lightweight for slower laptops and mobile
+devices. The markdown editor is loaded only when a note enters edit mode, code
+highlighting assets are loaded only for notes that contain fenced code blocks,
+and the home timeline renders notes in batches while preserving the same search,
+filter, and sort results.
+
+On mobile devices and for browsers with reduced-motion preferences, expensive
+fixed backgrounds, large blur effects, and heavy surface shadows are reduced to
+lower GPU pressure without changing the main layout.
 
 ## Configuration
 

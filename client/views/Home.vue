@@ -103,7 +103,7 @@
             </div>
           </section>
 
-          <section v-if="timelineGroups.length" class="space-y-6">
+          <section v-if="visibleTimelineGroups.length" class="space-y-6">
             <div class="flex items-end justify-between gap-4">
               <div>
                 <p class="section-heading">{{ timelineHeading }}</p>
@@ -114,7 +114,7 @@
 
             <div class="space-y-8">
               <div
-                v-for="group in timelineGroups"
+                v-for="group in visibleTimelineGroups"
                 :key="group.key"
                 class="timeline-group"
               >
@@ -148,6 +148,13 @@
                 </div>
               </div>
             </div>
+
+            <div
+              v-if="hasMoreTimelineResults"
+              ref="loadMoreSentinel"
+              class="h-0"
+              aria-hidden="true"
+            ></div>
           </section>
         </template>
       </div>
@@ -219,13 +226,18 @@ const globalStore = useGlobalStore();
 const availableTags = ref([]);
 const isMounted = ref(false);
 const isDeleteModalVisible = ref(false);
+const loadMoreSentinel = ref();
 const loadingIndicator = ref();
 const notePendingDelete = ref(null);
 const notes = ref([]);
+const renderedTimelineLimit = ref(60);
 const router = useRouter();
 const toast = useToast();
+let listIntersectionObserver = null;
 let refreshRequestId = 0;
 const notesChangedEventName = "copycat:notes-changed";
+const initialTimelineRenderLimit = 60;
+const timelineRenderBatchSize = 40;
 
 const configReady = computed(() => globalStore.config !== null);
 const activeGroup = computed(() => {
@@ -318,13 +330,19 @@ const timelineResults = computed(() => {
   }
   return notes.value;
 });
+const visibleTimelineResults = computed(() =>
+  timelineResults.value.slice(0, renderedTimelineLimit.value),
+);
 const groupField = computed(() =>
   isOverviewMode.value || effectiveSort.value !== searchSortOptions.createdAt
     ? "lastModified"
     : "createdAt",
 );
-const timelineGroups = computed(() =>
-  groupNotesByMonth(timelineResults.value, groupField.value),
+const visibleTimelineGroups = computed(() =>
+  groupNotesByMonth(visibleTimelineResults.value, groupField.value),
+);
+const hasMoreTimelineResults = computed(
+  () => renderedTimelineLimit.value < timelineResults.value.length,
 );
 const showPinnedSection = computed(() => pinnedNotes.value.length > 0);
 const showFavoritesOverlay = computed(() => pinnedNotes.value.length > 2);
@@ -392,6 +410,41 @@ function syncTopBarCounts() {
   };
 }
 
+function resetRenderedTimelineLimit() {
+  renderedTimelineLimit.value =
+    typeof IntersectionObserver === "undefined"
+      ? Number.MAX_SAFE_INTEGER
+      : initialTimelineRenderLimit;
+}
+
+function showMoreTimelineResults() {
+  renderedTimelineLimit.value = Math.min(
+    renderedTimelineLimit.value + timelineRenderBatchSize,
+    timelineResults.value.length,
+  );
+}
+
+function setupListIntersectionObserver() {
+  if (typeof IntersectionObserver === "undefined") {
+    renderedTimelineLimit.value = Number.MAX_SAFE_INTEGER;
+    return;
+  }
+
+  listIntersectionObserver?.disconnect();
+  listIntersectionObserver = new IntersectionObserver(
+    (entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        showMoreTimelineResults();
+      }
+    },
+    { rootMargin: "700px 0px" },
+  );
+
+  if (loadMoreSentinel.value) {
+    listIntersectionObserver.observe(loadMoreSentinel.value);
+  }
+}
+
 async function refreshHome() {
   if (!configReady.value) {
     return;
@@ -433,6 +486,7 @@ async function refreshHome() {
     }
 
     notes.value = noteData;
+    resetRenderedTimelineLimit();
     availableTags.value = tagData;
     syncTopBarCounts();
     loadingIndicator.value?.setLoaded();
@@ -446,6 +500,7 @@ async function refreshHome() {
     }
 
     notes.value = [];
+    resetRenderedTimelineLimit();
     availableTags.value = [];
     syncTopBarCounts();
     loadingIndicator.value?.setFailed();
@@ -681,9 +736,24 @@ watch(
   },
 );
 
+watch(loadMoreSentinel, () => {
+  if (!isMounted.value) {
+    return;
+  }
+  setupListIntersectionObserver();
+});
+
+watch(hasMoreTimelineResults, () => {
+  if (!isMounted.value) {
+    return;
+  }
+  setupListIntersectionObserver();
+});
+
 onMounted(() => {
   window.addEventListener(notesChangedEventName, refreshHome);
   isMounted.value = true;
+  setupListIntersectionObserver();
   if (configReady.value) {
     refreshHome();
   }
@@ -691,5 +761,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener(notesChangedEventName, refreshHome);
+  listIntersectionObserver?.disconnect();
+  listIntersectionObserver = null;
 });
 </script>

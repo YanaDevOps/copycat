@@ -364,7 +364,15 @@ import {
 import { mdilContentSave, mdilDelete } from "@mdi/light-js";
 import Mousetrap from "mousetrap";
 import { useToast } from "primevue/usetoast";
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import {
+  computed,
+  defineAsyncComponent,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from "vue";
 import { useRouter } from "vue-router";
 
 import {
@@ -387,7 +395,6 @@ import LoadingIndicator from "../components/LoadingIndicator.vue";
 import Popover from "../components/Popover.vue";
 import Tag from "../components/Tag.vue";
 import Toggle from "../components/Toggle.vue";
-import ToastEditor from "../components/toastui/ToastEditor.vue";
 import ToastViewer from "../components/toastui/ToastViewer.vue";
 import { authTypes, maxNoteTags, tagColorPalette } from "../constants.js";
 import { useGlobalStore } from "../globalStore.js";
@@ -416,6 +423,10 @@ const props = defineProps({
     default: undefined,
   },
 });
+
+const ToastEditor = defineAsyncComponent(() =>
+  import("../components/toastui/ToastEditor.vue"),
+);
 
 const globalStore = useGlobalStore();
 const availableTags = ref([]);

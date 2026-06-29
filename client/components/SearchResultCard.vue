@@ -149,6 +149,20 @@ import Popover from "./Popover.vue";
 import Tag from "./Tag.vue";
 import { maxNoteTags } from "../constants.js";
 
+const dateFormatter = new Intl.DateTimeFormat(undefined, {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+});
+const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
+  month: "short",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+const sanitizedMarkupCache = new Map();
+const sanitizedMarkupCacheLimit = 800;
+
 const props = defineProps({
   result: {
     type: Object,
@@ -209,28 +223,16 @@ function formatDate(unixTimestamp, variant = "datetime") {
     return "Unknown";
   }
 
-  const options =
-    variant === "date"
-      ? {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        }
-      : {
-          month: "short",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        };
-
-  return new Intl.DateTimeFormat(undefined, options).format(
-    new Date(unixTimestamp * 1000),
-  );
+  const formatter = variant === "date" ? dateFormatter : dateTimeFormatter;
+  return formatter.format(new Date(unixTimestamp * 1000));
 }
 
 function sanitizeHighlightMarkup(markup) {
   if (!markup) {
     return "";
+  }
+  if (sanitizedMarkupCache.has(markup)) {
+    return sanitizedMarkupCache.get(markup);
   }
   if (typeof DOMParser === "undefined") {
     return markup;
@@ -244,7 +246,16 @@ function sanitizeHighlightMarkup(markup) {
   }
 
   sanitizeNode(container);
-  return container.innerHTML;
+  return cacheSanitizedMarkup(markup, container.innerHTML);
+}
+
+function cacheSanitizedMarkup(markup, sanitizedMarkup) {
+  if (sanitizedMarkupCache.size >= sanitizedMarkupCacheLimit) {
+    const [oldestKey] = sanitizedMarkupCache.keys();
+    sanitizedMarkupCache.delete(oldestKey);
+  }
+  sanitizedMarkupCache.set(markup, sanitizedMarkup);
+  return sanitizedMarkup;
 }
 
 function sanitizeNode(node) {
