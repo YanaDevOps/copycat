@@ -4,10 +4,12 @@ import { test } from "node:test";
 import {
   allGroups,
   canonicalizeLegacyGroupQuery,
+  canonicalizeNotePathEncoding,
   cleanNoteTitleForRoute,
   cleanWikiLinkTitle,
   groupQueryValue,
   legacyGroup,
+  noteRouteLocation,
   withGroupQuery,
 } from "../../client/routeHelpers.js";
 
@@ -51,6 +53,42 @@ test("legacy group query canonicalizes away", () => {
 test("note route title only trims normal route titles", () => {
   assert.equal(cleanNoteTitleForRoute("  Dedi Migration 2026  "), "Dedi Migration 2026");
   assert.equal(cleanNoteTitleForRoute("[ Dedi Migration 2026 ]"), "[ Dedi Migration 2026 ]");
+});
+
+test("note route location encodes path-only unsafe title characters", () => {
+  assert.deepEqual(noteRouteLocation("[ Retn BGP-communities ]"), {
+    path: "/note/%5B%20Retn%20BGP-communities%20%5D",
+    query: {},
+  });
+  assert.deepEqual(noteRouteLocation("Dedi Migration 2026", "team"), {
+    path: "/note/Dedi%20Migration%202026",
+    query: { group: "team" },
+  });
+});
+
+test("note route location does not double encode raw percent-like titles", () => {
+  assert.deepEqual(noteRouteLocation("%5B Retn %5D"), {
+    path: "/note/%255B%20Retn%20%255D",
+    query: {},
+  });
+});
+
+test("raw bracket note paths canonicalize to encoded paths", () => {
+  assert.deepEqual(
+    canonicalizeNotePathEncoding({
+      name: "note",
+      path: "/note/[%20Retn%20BGP-communities%20]",
+      params: { title: "[ Retn BGP-communities ]" },
+      query: { group: "team" },
+      hash: "#part",
+    }),
+    {
+      path: "/note/%5B%20Retn%20BGP-communities%20%5D",
+      query: { group: "team" },
+      hash: "#part",
+      replace: true,
+    },
+  );
 });
 
 test("wikilink title trims accidental outer brackets", () => {

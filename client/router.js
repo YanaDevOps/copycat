@@ -3,7 +3,10 @@ import * as constants from "./constants.js";
 import { createRouter, createWebHistory } from "vue-router";
 
 import { authCheck } from "./api.js";
-import { canonicalizeLegacyGroupQuery } from "./routeHelpers.js";
+import {
+  canonicalizeLegacyGroupQuery,
+  canonicalizeNotePathEncoding,
+} from "./routeHelpers.js";
 
 function getQueryStringValue(value) {
   return Array.isArray(value) ? value[0] : value;
@@ -98,6 +101,10 @@ router.beforeEach(async (to) => {
   const canonicalRoute = canonicalizeLegacyGroupQuery(to);
   if (canonicalRoute) {
     return canonicalRoute;
+  }
+  const canonicalNoteRoute = canonicalizeNotePathEncoding(to);
+  if (canonicalNoteRoute) {
+    return canonicalNoteRoute;
   }
   if (authChecked || to.name === "login") {
     return;

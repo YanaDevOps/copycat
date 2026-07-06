@@ -1,6 +1,6 @@
 import { params, searchSortOptions } from "../../constants.js";
 
-import { cleanWikiLinkTitle, withGroupQuery } from "../../routeHelpers.js";
+import { cleanWikiLinkTitle, noteRouteLocation } from "../../routeHelpers.js";
 import router from "../../router.js";
 
 /*
@@ -84,11 +84,7 @@ function parseWikiLink(source) {
       const currentGroup = router.currentRoute.value.query[params.group];
       let href = "#";
       try {
-        href = router.resolve({
-          name: "note",
-          params: { title: text },
-          query: withGroupQuery({}, currentGroup),
-        }).href;
+        href = router.resolve(noteRouteLocation(text, currentGroup)).href;
       } catch {
         href = "#";
       }

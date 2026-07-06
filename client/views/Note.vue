@@ -410,8 +410,8 @@ import {
   noteImportMaxBytes,
 } from "../noteImport.js";
 import {
-  cleanNoteTitleForRoute,
   groupQueryValue,
+  noteRouteLocation,
   withGroupQuery,
 } from "../routeHelpers.js";
 import { isCurrentTokenStored } from "../tokenStorage.js";
@@ -758,12 +758,7 @@ function duplicateHandler() {
           "success",
         ),
       );
-      router.push({
-        name: "note",
-        params: { title: cleanNoteTitleForRoute(data.title) },
-        query: noteQuery(data.title, data.groupId || currentGroupQuery.value)
-          .query,
-      });
+      router.push(noteQuery(data.title, data.groupId || currentGroupQuery.value));
     })
     .catch((error) => {
       apiErrorHandler(error, toast);
@@ -778,11 +773,7 @@ function downloadHandler() {
 
 function shareHandler() {
   const noteUrl = buildAppUrl(
-    router.resolve({
-      name: "note",
-      params: { title: cleanNoteTitleForRoute(note.value.title) },
-      query: noteQuery(note.value.title).query,
-    }).href,
+    router.resolve(noteQuery(note.value.title)).href,
   );
   copyTextToClipboard(noteUrl)
     .then(() => {
@@ -868,12 +859,9 @@ async function saveNew(title, content, tagIds, close = false) {
     );
     clearDraft();
     note.value = data;
-    await router.push({
-      name: "note",
-      params: { title: cleanNoteTitleForRoute(note.value.title) },
-      query: noteQuery(note.value.title, data.groupId || currentGroupQuery.value)
-        .query,
-    });
+    await router.push(
+      noteQuery(note.value.title, data.groupId || currentGroupQuery.value),
+    );
     noteSaveSuccess(close);
   } catch (error) {
     noteSaveFailure(error);
@@ -1273,11 +1261,7 @@ function isContentChanged() {
 }
 
 function noteQuery(title, group = currentGroupQuery.value) {
-  return {
-    name: "note",
-    params: { title: cleanNoteTitleForRoute(title) },
-    query: withGroupQuery({}, group),
-  };
+  return noteRouteLocation(title, group);
 }
 
 function homeQuery() {

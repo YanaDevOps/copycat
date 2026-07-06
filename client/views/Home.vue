@@ -176,8 +176,8 @@ import {
 import { useGlobalStore } from "../globalStore.js";
 import { getToastOptions, groupNotesByMonth } from "../helpers.js";
 import {
-  cleanNoteTitleForRoute,
   groupQueryValue,
+  noteRouteLocation,
   withGroupQuery,
 } from "../routeHelpers.js";
 
@@ -570,11 +570,7 @@ function updateTagFilters(tagIds) {
 
 function openNote(note) {
   const group = noteGroupValue(note);
-  router.push({
-    name: "note",
-    params: { title: cleanNoteTitleForRoute(note.title) },
-    query: withGroupQuery({}, group),
-  });
+  router.push(noteRouteLocation(note.title, group));
 }
 
 function patchNoteInList(updatedNote, previousTitle) {
@@ -658,11 +654,9 @@ function duplicateHandler(note) {
           "success",
         ),
       );
-      router.push({
-        name: "note",
-        params: { title: cleanNoteTitleForRoute(data.title) },
-        query: withGroupQuery({}, data.groupId || noteGroupValue(note)),
-      });
+      router.push(
+        noteRouteLocation(data.title, data.groupId || noteGroupValue(note)),
+      );
     })
     .catch((error) => {
       apiErrorHandler(error, toast);

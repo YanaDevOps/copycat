@@ -37,6 +37,13 @@ export function cleanNoteTitleForRoute(title) {
   return String(title || "").trim();
 }
 
+export function noteRouteLocation(title, group, options = {}) {
+  return {
+    path: `/note/${encodeURIComponent(cleanNoteTitleForRoute(title))}`,
+    query: withGroupQuery({}, group, options),
+  };
+}
+
 export function cleanWikiLinkTitle(title) {
   let normalized = cleanNoteTitleForRoute(title);
   if (normalized.startsWith("[") && normalized.endsWith("]")) {
@@ -60,6 +67,22 @@ export function canonicalizeLegacyGroupQuery(route) {
   return {
     ...target,
     query,
+    hash: route.hash,
+    replace: true,
+  };
+}
+
+export function canonicalizeNotePathEncoding(route) {
+  if (
+    route.name !== "note" ||
+    !route.params?.title ||
+    !/[\[\]]/.test(route.path)
+  ) {
+    return null;
+  }
+  return {
+    path: `/note/${encodeURIComponent(cleanNoteTitleForRoute(route.params.title))}`,
+    query: { ...route.query },
     hash: route.hash,
     replace: true,
   };

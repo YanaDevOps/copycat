@@ -2,8 +2,8 @@ apiVersion: v2
 name: copycat
 description: Helm chart for deploying CopyCat on Kubernetes
 type: application
-version: 1.4.6
-appVersion: "1.4.6"
+version: 1.4.7
+appVersion: "1.4.7"
 keywords:
   - self-hosted
   - markdown
